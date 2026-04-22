@@ -1,5 +1,3 @@
-const WHATSAPP_NUMBER = "919394683474";
-
 function setupNav() {
   const menuButton = document.getElementById("menuToggle");
   const nav = document.getElementById("mainNav");
@@ -7,39 +5,24 @@ function setupNav() {
   menuButton.addEventListener("click", () => nav.classList.toggle("open"));
 }
 
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0
-  }).format(value);
-}
-
 function createProductCard(product) {
   return `
     <article class="card product-card">
-      <img src="${product.image}" alt="${product.name}" />
+      <img loading="lazy" src="${product.image}" alt="${product.name}" />
+      <p class="chip">${product.category}</p>
       <h3>${product.name}</h3>
       <p>${product.description}</p>
-      <p class="price">${formatCurrency(product.price)}</p>
-      <a class="btn btn-small" href="product.html?id=${product.id}">View Details</a>
+      <p class="price">${STARTING_PRICE_LABEL}</p>
+      <a class="btn btn-small" href="product.html?id=${product.id}">Order Now</a>
     </article>
   `;
 }
 
 function renderProductsPage() {
   if (typeof PRODUCTS === "undefined") return;
-  const sections = {
-    portraitsGrid: PRODUCTS.filter((p) => p.category === "portraits"),
-    sketchesGrid: PRODUCTS.filter((p) => p.category === "sketches"),
-    mandalaGrid: PRODUCTS.filter((p) => p.category === "mandala")
-  };
-
-  Object.entries(sections).forEach(([elementId, list]) => {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-    el.innerHTML = list.map(createProductCard).join("");
-  });
+  const grid = document.getElementById("productsGrid");
+  if (!grid) return;
+  grid.innerHTML = PRODUCTS.map(createProductCard).join("");
 }
 
 function buildSelect(label, name, values) {
@@ -64,22 +47,24 @@ function renderProductDetail() {
   container.innerHTML = `
     <img class="product-image" src="${product.image}" alt="${product.name}" />
     <div>
-      <p class="eyebrow">${product.category.toUpperCase()}</p>
+      <p class="chip">${product.category}</p>
       <h1>${product.name}</h1>
       <p>${product.description}</p>
-      <p class="price">${formatCurrency(product.price)}</p>
+      <p class="price">${STARTING_PRICE_LABEL}</p>
       <form id="orderForm" class="order-form">
         ${buildSelect("Size", "size", product.options.size)}
         ${buildSelect("Style", "style", product.options.style)}
-        <label>Additional requirements
-          <textarea name="requirements" rows="4" placeholder="Mention people count, background color, delivery date, etc."></textarea>
+        <label>Name / Occasion
+          <input name="occasion" type="text" placeholder="Ex: Birthday Gift for Priya" required />
         </label>
-        <label>Upload reference image
+        <label>Upload Reference Image
           <input type="file" name="reference" accept="image/*" required />
+        </label>
+        <label>Extra Requirements
+          <textarea name="requirements" rows="4" placeholder="Mention custom details here..."></textarea>
         </label>
         <div class="actions">
           <button type="button" id="whatsappOrder" class="btn">Order via WhatsApp</button>
-          <button type="button" id="payNow" class="btn btn-outline">Pay with Razorpay</button>
         </div>
       </form>
     </div>
@@ -89,37 +74,14 @@ function renderProductDetail() {
   whatsappBtn?.addEventListener("click", () => {
     const form = document.getElementById("orderForm");
     const formData = new FormData(form);
+    const occasion = formData.get("occasion") || "";
     const requirements = formData.get("requirements") || "";
     const size = formData.get("size");
     const style = formData.get("style");
 
-    const text = `Hi, I want to order ${product.name}. Here are my requirements. Size: ${size}, Style: ${style}, Notes: ${requirements}`;
+    const text = `Hi, I want to order ${product.name}. Here are my requirements. Size: ${size}, Style: ${style}, Occasion: ${occasion}, Notes: ${requirements}`;
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank", "noopener,noreferrer");
-  });
-
-  const payNowBtn = document.getElementById("payNow");
-  payNowBtn?.addEventListener("click", () => {
-    if (typeof Razorpay === "undefined") {
-      alert("Razorpay failed to load. Please try WhatsApp order.");
-      return;
-    }
-
-    const options = {
-      key: "rzp_test_1DP5mmOlF5G5ag",
-      amount: product.price * 100,
-      currency: "INR",
-      name: "Nibedita Art Club",
-      description: product.name,
-      image: product.image,
-      handler: function () {
-        alert("Payment captured in demo mode. We will contact you shortly on WhatsApp.");
-      },
-      theme: { color: "#8f2d56" }
-    };
-
-    const rzp = new Razorpay(options);
-    rzp.open();
   });
 }
 
